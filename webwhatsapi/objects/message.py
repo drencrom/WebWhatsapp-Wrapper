@@ -1,20 +1,19 @@
 import mimetypes
-from base64 import b64decode
-from datetime import datetime
-
 import os
+from datetime import datetime
 from typing import Union
 
-from ..helper import safe_str
 from .contact import Contact
 from .whatsapp_object import WhatsappObject
+from ..helper import safe_str
 
 
 def getContacts(x, driver):
+    # XXX: why camel case? what is x?
     try:
         contact = driver.get_contact_from_id(x)
         return contact
-    except:
+    except Exception:
         return x
 
 
@@ -23,7 +22,7 @@ def factory_message(js_obj, driver):
     if js_obj is None:
         return
 
-    if js_obj["lat"] and js_obj["lng"]:
+    if "lat" in js_obj and "lng" in js_obj and js_obj["lat"] and js_obj["lng"]:
         return GeoMessage(js_obj, driver)
 
     if js_obj["isMedia"]:
@@ -42,7 +41,6 @@ def factory_message(js_obj, driver):
 
 
 class Message(WhatsappObject):
-
     sender = Union[Contact, bool]
 
     def __init__(self, js_obj, driver=None):
@@ -55,7 +53,6 @@ class Message(WhatsappObject):
         super(Message, self).__init__(js_obj, driver)
 
         self.id = js_obj["id"]
-        self.cid = js_obj["cid"]
         self.type = js_obj["type"]
         self.sender = Contact(js_obj["sender"], driver) if js_obj["sender"] else False
         self.timestamp = datetime.fromtimestamp(js_obj["timestamp"])
@@ -78,18 +75,18 @@ class Message(WhatsappObject):
 
 class MediaMessage(Message):
     crypt_keys = {'document': '576861747341707020446f63756d656e74204b657973',
-                  'image'   : '576861747341707020496d616765204b657973',
-                  'video'   : '576861747341707020566964656f204b657973',
-                  'ptt'     : '576861747341707020417564696f204b657973',
-                  'audio'   : '576861747341707020417564696f204b657973'}
+                  'image': '576861747341707020496d616765204b657973',
+                  'video': '576861747341707020566964656f204b657973',
+                  'ptt': '576861747341707020417564696f204b657973',
+                  'audio': '576861747341707020417564696f204b657973'}
 
     def __init__(self, js_obj, driver=None):
         super(MediaMessage, self).__init__(js_obj, driver)
 
         self.size = self._js_obj["size"]
         self.mime = self._js_obj["mimetype"]
-        if "caption" in self._js_obj and self._js_obj["caption"]:
-            self.caption = self._js_obj["caption"]
+        if "caption" in self._js_obj:
+            self.caption = self._js_obj["caption"] or ""
 
         self.media_key = self._js_obj.get('mediaKey')
         self.client_url = self._js_obj.get('clientUrl')
